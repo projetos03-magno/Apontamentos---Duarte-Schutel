@@ -133,6 +133,14 @@ details.blk>summary .n{font-weight:500;color:var(--ink-3);font-size:14px}
 .reun ul ul{margin-top:2px}
 .reun li.n1{margin-left:16px;list-style-type:circle}
 .reun li.n2{margin-left:32px;list-style-type:square}
+.ata-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:8px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.ata-info{min-width:0;flex:1 1 240px;overflow-wrap:anywhere}
+.ata-info .n{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.ata-ac{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.ata-row .btn.ata-dl{text-decoration:none;min-height:44px}
+.ata-nd{font-size:13px;color:var(--ink-2)}
+.ata-msg{font-size:13px;color:var(--crit)}
+@media (max-width:560px){.ata-ac,.ata-row .btn.ata-dl{width:100%}}
 .rmais{margin:0 0 10px}
 .rmais>summary{cursor:pointer;font-size:14px;color:var(--ink-2);padding:6px 0;min-height:36px}
 .lnk{background:none;border:0;padding:0;color:var(--focus);text-decoration:underline;cursor:pointer;font:inherit}
@@ -1189,6 +1197,10 @@ function dselBuild(){
 }
 dselList.addEventListener("change",function(){var arr=[].map.call(dselList.querySelectorAll("input:checked"),function(i){return i.value;});setMyDiscs(arr);});
 document.addEventListener("click",function(e){var d=document.getElementById("dsel");if(d&&d.open&&!d.contains(e.target))d.open=false;var r=document.getElementById("rdSel");if(r&&r.open&&!r.contains(e.target)){r.open=false;REU.aberto=false;}});
+/* Construflow: reaproveita a aba aberta pela plataforma (nome "construflow_magno"); sem referência ou pop-up bloqueado → o link segue normal. */
+var CF_WIN=null;
+function abrirCF(url){/* window.open pelo nome navega e traz para a frente a aba já aberta; CF_WIN é reserva se o nome não for achado */var w=null;try{w=window.open(url,"construflow_magno");}catch(e){}if(w){CF_WIN=w;try{w.focus();}catch(e){}return true;}try{if(CF_WIN&&!CF_WIN.closed){CF_WIN.location.href=url;CF_WIN.focus();return true;}}catch(e){}return false;}
+document.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;var a=e.target&&e.target.closest?e.target.closest("a[data-cf]"):null;if(a&&abrirCF(a.href))e.preventDefault();});
 document.getElementById("pvSel").addEventListener("change",function(){entrarPreview(this.value);});
 document.getElementById("syncBtn").addEventListener("click",function(){sincronizarAgora();});
 document.getElementById("empImg").addEventListener("click",function(){var v=document.createElement("div");v.className="imgview";var x=EMP_IMG[EMP]||{};if(!x.g)return;v.innerHTML='<img src="'+x.g+'" alt="'+esc(empImgAlt())+'">';v.addEventListener("click",function(){v.remove();});document.addEventListener("keydown",function k(e){if(e.key==="Escape"){v.remove();document.removeEventListener("keydown",k);}});document.body.appendChild(v);});
@@ -2075,15 +2087,15 @@ function renderDrawer(){
     var hist='<div class="box"><h4>Comentários no Construflow <span style="font-weight:400;color:var(--ink-3)">('+cm.length+')</span></h4>'+(cm.length?'<ul class="cmts">'+cm.map(function(c){return '<li'+(lvDia()&&String(c.d||"")>lvDia()?' class="new"':'')+'><p class="who">'+fmtD(c.d)+', '+esc(c.a)+'</p><div class="txt">'+esc(c.t)+'</div></li>';}).join('')+'</ul>':'<p class="msg">Nenhum comentário público até a última sincronização.</p>')+'</div>';
     var it=S.isAdmin&&S.interno[String(a.numero)]?(S.interno[String(a.numero)].comentarios||[]).slice().reverse():[];
     var hint=it.length?'<div class="box"><h4>Comentários internos da Magno <span style="font-weight:400;color:var(--ink-3)">(visibilidade Grupo, aguardando validação da equipe para publicação)</span></h4><ul class="cmts int">'+it.map(function(c){return '<li><p class="who">'+fmtD(c.d)+', '+esc(c.a)+'</p><div class="txt">'+esc(c.t)+'</div></li>';}).join('')+'</ul></div>':'';
-    var tools='<div class="box row-btns">'+(cfUrl?'<a class="btn" href="'+esc(cfUrl)+'" target="_blank" rel="noopener" style="text-decoration:none">Responder no Construflow</a>':'')+(S.isAdmin?'<button class="btn ghost" type="button" id="editBtn">Editar prazo e observações</button>':'')+
+    var tools='<div class="box row-btns">'+(cfUrl?'<a class="btn" href="'+esc(cfUrl)+'" target="construflow_magno" data-cf style="text-decoration:none">Responder no Construflow</a>':'')+(S.isAdmin?'<button class="btn ghost" type="button" id="editBtn">Editar prazo e observações</button>':'')+
       '<span class="msg">'+(a.atualizadoEm?'Editado no app em '+fmtD(a.atualizadoEm):(a.sincronizadoEm?'Sincronizado em '+fmtD(a.sincronizadoEm):esc(a.fonte||'')))+'</span></div>';
     var Dm=minhasDiscs(), minhasPend=Dm.filter(function(c){return proxEf(a).indexOf(c)>=0;}), acm=acoesPara(a,minhasPend.length?minhasPend:Dm), pi=prazoInfo(a);
     var faca;
     if(!isOpen(a))faca='<section class="faca"><h4>Apontamento '+esc((STL[a.status]||'').toLowerCase())+'</h4><p style="margin:0">Não há mais nada a fazer neste apontamento.</p></section>';
     else if(emRevisao(a))faca='<section class="faca"><h4>Fica para a próxima revisão</h4><p style="margin:0;font-size:15px">Este apontamento continua pendente, mas não precisa ser resolvido nesta rodada. Ele volta para as demandas em '+fmtD(revAte(a))+'.'+(revObj(a).motivo?' Motivo: '+esc(revObj(a).motivo):'')+'</p></section>';
-    else if(Dm.length&&!minhasPend.length&&!S.isAdmin)faca='<section class="faca"><h4>Sua disciplina não precisa responder agora</h4><p style="margin:0;font-size:15px">'+(respLista(a).some(function(c){return Dm.indexOf(c)>=0;})?'Você já respondeu; falta marcar o status no Construflow.':'Acompanhe o andamento pelos comentários.')+'</p>'+(cfUrl?'<a class="btn cr" href="'+esc(cfUrl)+'" target="_blank" rel="noopener">Abrir no Construflow</a>':'')+'</section>';
+    else if(Dm.length&&!minhasPend.length&&!S.isAdmin)faca='<section class="faca"><h4>Sua disciplina não precisa responder agora</h4><p style="margin:0;font-size:15px">'+(respLista(a).some(function(c){return Dm.indexOf(c)>=0;})?'Você já respondeu; falta marcar o status no Construflow.':'Acompanhe o andamento pelos comentários.')+'</p>'+(cfUrl?'<a class="btn cr" href="'+esc(cfUrl)+'" target="construflow_magno" data-cf>Abrir no Construflow</a>':'')+'</section>';
     else faca='<section class="faca st-'+pi.cls+'"><h4>O que você precisa fazer</h4>'+(acm.length?'<ul>'+acm.map(function(x){return '<li>'+esc(acaoTexto(x.texto))+'</li>';}).join("")+'</ul>':(a.observacao?'<ul><li>'+esc(a.observacao)+'</li></ul>':''))+
-      '<span class="pz '+pi.cls+'">'+(pi.dia==="Sem prazo"?'Sem prazo definido':'Prazo: '+esc(pi.dia)+(pi.rel?' · '+esc(pi.rel):''))+'</span>'+(cfUrl?'<a class="btn cr" href="'+esc(cfUrl)+'" target="_blank" rel="noopener">Responder no Construflow</a>':'')+'<label class="mk"><input type="checkbox" id="drMk"'+(mkData(a)?' checked':'')+'> Respondido'+(mkData(a)?' <span>(marcado em '+fmtD(mkData(a)).slice(0,5)+')</span>':'')+'</label></section>';
+      '<span class="pz '+pi.cls+'">'+(pi.dia==="Sem prazo"?'Sem prazo definido':'Prazo: '+esc(pi.dia)+(pi.rel?' · '+esc(pi.rel):''))+'</span>'+(cfUrl?'<a class="btn cr" href="'+esc(cfUrl)+'" target="construflow_magno" data-cf>Responder no Construflow</a>':'')+'<label class="mk"><input type="checkbox" id="drMk"'+(mkData(a)?' checked':'')+'> Respondido'+(mkData(a)?' <span>(marcado em '+fmtD(mkData(a)).slice(0,5)+')</span>':'')+'</label></section>';
     var situ=a.observacao?'<div class="box"><h4>Situação atual</h4><p>'+esc(a.observacao)+'</p></div>':'';
     var feito=(a.realizadas||[]).length?'<div class="box"><h4>O que já foi feito</h4><ul class="feitas">'+a.realizadas.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>':'';
     var rlq=isOpen(a)?respLista(a):[], qcs=proxEf(a).concat(rlq.filter(function(c){return proxEf(a).indexOf(c)<0;}));
@@ -2101,7 +2113,7 @@ function renderDrawer(){
     var tools2=S.isAdmin?'<div class="box row-btns"><button class="btn ghost" type="button" id="editBtn">Editar prazo e observações</button><span class="msg">'+(a.atualizadoEm?'Editado no app em '+fmtD(a.atualizadoEm):(a.sincronizadoEm?'Sincronizado em '+fmtD(a.sincronizadoEm):''))+'</span></div>':'';
     body=S.editing?editForm(a):(faca+situ+feito+quem+hist+hint+anx+vin+det+revisaoBox(a)+tools2);
     var precisaAgir=!S.editing&&isOpen(a)&&!emRevisao(a)&&cfUrl&&(S.isAdmin||!Dm.length||minhasPend.length);
-    if(precisaAgir)body+='<div class="drfoot"><a class="btn" href="'+esc(cfUrl)+'" target="_blank" rel="noopener">Responder no Construflow</a></div>';
+    if(precisaAgir)body+='<div class="drfoot"><a class="btn" href="'+esc(cfUrl)+'" target="construflow_magno" data-cf>Responder no Construflow</a></div>';
   }
   dr.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle"><header>'+head+'<button class="x" id="xBtn" aria-label="Fechar">×</button></header><div class="body">'+body+'</div></aside>';
   document.getElementById("scrim").addEventListener("click",closeDrawer);
@@ -2318,31 +2330,29 @@ function reunioesHtml(){
   return '<section class="rfonte" aria-labelledby="rfC"><header><h4 id="rfC">Comentários da Construflow</h4><p>'+(nC?nC+(nC>1?' reuniões':' reunião')+' · ':'')+'resumo automático dos comentários de reunião nos apontamentos</p></header>'+reunioesConstruflowHtml()+'</section>'+
     '<section class="rfonte" aria-labelledby="rfA"><header><h4 id="rfA">Atas de reunião</h4><p>'+(nA?nA+(nA>1?' atas':' ata')+' · ':'')+'registro oficial das reuniões semanais (PDF da pasta do projeto)</p></header>'+atasHtml()+'</section>';
 }
-function ataItem(k){var a=S.atas[k]||{},nAc=0;
-  var emp=function(g,fn){return (g||[]).filter(function(x){return x&&(x.itens||[]).length;}).map(function(x){return '<p class="ata-emp">'+esc(x.empresa||"Sem empresa")+'</p><ul>'+x.itens.map(fn).join("")+'</ul>';}).join("");};
-  (a.acoes||[]).forEach(function(x){nAc+=(x.itens||[]).length;});
-  var acoes=emp(a.acoes,function(i){return '<li>'+linkNums(i.t||"")+(i.prazo?' <span class="prz">· até '+fmtD(i.prazo)+'</span>':'')+'</li>';});
-  var ant=emp(a.anteriores,function(i){return '<li>'+linkNums(i.t||"")+(i.status?' <span class="prz">— '+esc(i.status)+'</span>':'')+'</li>';});
-  var ali=(a.alinhamentos||[]).map(function(x){var s=(x.itens||[]).map(function(t){var m=/^(-{1,2}) /.exec(t=String(t||""));return '<li'+(m?' class="n'+m[1].length+'"':'')+'>'+linkNums(m?t.slice(m[0].length):t)+'</li>';}).join("");return '<li>'+linkNums(x.t||"")+(s?'<ul>'+s+'</ul>':'')+'</li>';}).join("");
-  var part=(a.participantes||[]).filter(function(p){return p&&p.empresa;}).map(function(p){return '<b>'+esc(p.empresa)+'</b>'+((p.pessoas||[]).length?': '+esc(p.pessoas.join(", ")):'');}).join(" · ");
-  var obs=(a.obs||[]).map(function(t){return '<li>'+esc(t)+'</li>';}).join("");
-  return '<details class="reun ata" data-reun="ata:'+esc(k)+'"'+(REU_ABERTAS["ata:"+k]?' open':'')+'><summary><strong>'+fmtD(a.data||k)+'</strong> · '+esc(a.titulo||"Reunião semanal")+' <span class="n">'+(nAc?nAc+(nAc===1?' ação':' ações'):'sem ações')+'</span></summary>'+
-    (a.resumo?'<p class="rs">'+linkNums(a.resumo)+'</p>':'')+
-    (part?'<p class="ata-part">Participantes — '+part+'</p>':'')+
-    ((a.pauta||[]).length?'<h4>Pauta</h4><ul>'+a.pauta.map(function(t){return '<li>'+esc(t)+'</li>';}).join("")+'</ul>':'')+
-    (acoes?'<h4>Ações</h4>'+acoes:'')+
-    (ant?'<h4>Ações da semana anterior</h4>'+ant:'')+
-    (ali?'<h4>Alinhamentos</h4><ul>'+ali+'</ul>':'')+
-    (obs?'<h4>Observações da importação</h4><ul>'+obs+'</ul>':'')+
-    '<p class="count">Fonte: ata em PDF'+(a.arquivo?' · '+esc(a.arquivo):'')+'</p></details>';
+/* Atas: lista compacta com download do PDF (casca do site: window.claude.baixarAta; artifact: link para o site). Contrato: contrato-atas-download.md */
+var SITE_LOGIN_URL=EM_SITE;/* site com login (mesma URL do e-mail de cobrança) */
+function ataTam(b){b=Number(b);if(!(b>0))return "";return b>=1048576?(b/1048576).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(b/1024))+" KB";}
+function ataItem(k){var a=S.atas[k]||{},d=fmtD(a.data||k),tam=ataTam(a.bytes),site=!!(window.claude&&typeof window.claude.baixarAta==="function"),acao;
+  if(!a.storage)acao='<span class="ata-nd">Arquivo indisponível</span>';
+  else if(site)acao='<button type="button" class="btn ghost ata-dl" data-ata="'+esc(k)+'" aria-label="Baixar ata de '+d+' (PDF)">Baixar ata (PDF)</button>';
+  else acao='<a class="btn ghost ata-dl" href="'+esc(SITE_LOGIN_URL+"?emp="+encodeURIComponent(EMP))+'" target="_blank" rel="noopener" aria-label="Baixar ata de '+d+' no site (abre em nova aba)">Baixar no site</a>';
+  return '<div class="ata-row"><div class="ata-info"><strong>'+d+'</strong> · <span class="ata-t">'+esc(a.titulo||"Reunião semanal")+'</span>'+(tam&&a.storage?' <span class="n">'+tam+'</span>':'')+'</div><div class="ata-ac">'+acao+'<span class="ata-msg msg" role="status"></span></div></div>';
 }
+function atasOrdenadas(){return Object.keys(S.atas||{}).sort(function(x,y){var A=S.atas[x]||{},B=S.atas[y]||{},da=String(A.data||x),db=String(B.data||y);if(da!==db)return da<db?1:-1;return String(A.titulo||"").localeCompare(String(B.titulo||""),"pt-BR");});}
 function atasHtml(){
-  var ks=Object.keys(S.atas||{}).sort().reverse();
-  if(!ks.length)return '<div class="empty">Nenhuma ata importada ainda. As atas aparecem aqui quando os PDFs da pasta do projeto forem carregados.</div>';
+  var ks=atasOrdenadas();
+  if(!ks.length)return '<div class="empty">As atas chegam por e-mail e ficam disponíveis para download aqui.</div>';
   var h=ks.slice(0,6).map(ataItem).join("");
   if(ks.length>6)h+='<details class="rmais" data-reun="ata:mais"'+(REU_ABERTAS["ata:mais"]?' open':'')+'><summary>Atas anteriores ('+(ks.length-6)+')</summary>'+ks.slice(6).map(ataItem).join("")+'</details>';
   return h;
 }
+document.addEventListener("click",function(e){var bt=e.target&&e.target.closest?e.target.closest("button.ata-dl[data-ata]"):null;if(!bt||bt.disabled)return;
+  var msg=bt.parentNode.querySelector(".ata-msg"),rot=bt.textContent;bt.disabled=true;bt.textContent="Gerando link…";if(msg)msg.textContent="";
+  Promise.resolve().then(function(){return window.claude.baixarAta(bt.getAttribute("data-ata"));}).then(function(r){
+    var l=document.createElement("a");l.href=r.url;l.download=r.arquivo||"ata.pdf";l.rel="noopener";l.style.display="none";document.body.appendChild(l);l.click();l.remove();
+  }).catch(function(){if(msg)msg.textContent="Não foi possível baixar a ata. Tente de novo.";}).then(function(){bt.disabled=false;bt.textContent=rot;});
+});
 function reunioesConstruflowHtml(){
   var ks=Object.keys(S.reunioes||{}).sort().reverse();
   if(!ks.length)return '<div class="empty">Nenhuma reunião registrada ainda. Os resumos aparecem aqui a partir dos comentários de reunião no Construflow.</div>';
@@ -3166,7 +3176,7 @@ function apRow(a,hl){
     '<div class="cp '+pi.cls+'">'+(pi.lab?'<span>'+esc(pi.lab)+'</span>':'')+'<div class="pl2"><b>'+esc(pi.dia)+'</b>'+(pi.rel?' <i><small class="sep">· </small>'+esc(pi.rel)+'</i>':'')+'</div></div>'+
     '<div class="cc"><button type="button" class="ct" data-open="'+esc(a.numero)+'">'+(nov?'<span class="dot" aria-label="Novidade"></span>':'')+'<span class="cn">#'+esc(a.numero)+'</span> '+esc(tituloFmt(a.titulo))+'</button>'+
     (linha?'<span class="ca" title="'+esc(linha)+'">'+esc(linha)+'</span>':'')+(extras.length?'<span class="cx">'+extras.join('')+'</span>':'')+'</div>'+
-    '<div class="cbx">'+(url&&isOpen(a)?'<a class="btn crl" href="'+esc(url)+'" target="_blank" rel="noopener">Responder no Construflow</a>':'')+
+    '<div class="cbx">'+(url&&isOpen(a)?'<a class="btn crl" href="'+esc(url)+'" target="construflow_magno" data-cf>Responder no Construflow</a>':'')+
       (isOpen(a)?'<label class="mk"><input type="checkbox" data-mk="'+esc(a.numero)+'"'+(mkData(a)?' checked':'')+'> Respondido</label>':'')+'</div>'+
   '</article>';
 }
