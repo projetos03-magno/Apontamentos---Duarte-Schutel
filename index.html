@@ -315,6 +315,7 @@ h3 .n{font-weight:500;color:var(--ink-3);font-size:14px}
 .pl-mkl{font-size:13px;color:var(--brand-ink)}
 .pl-ant{margin-top:18px}.pl-ant summary{cursor:pointer;font-weight:600;padding:6px 0}
 .pl-orig{margin-top:18px}
+.pl-cron{margin-top:10px}.pl-crond{margin:10px 0 0}
 @media (max-width:560px){.pl-f{margin-left:0;width:100%}.pl-nav .btn{min-height:36px}}
 
 /* Panel */
@@ -1101,7 +1102,7 @@ var S = {
   aps: [], cfg: null, loaded: false, dbOk: null,
   view: null, myDiscs: [], lastVisit: null, isAdmin: false, uid: null,
   f: {disc:"", faixa:"", prio:"", status:"aberto", q:"", sort:"", group:false, prazo:"", mine:true}, fChave: "",
-  interno: {}, revs: {}, resumos: {}, reunioes: {}, atas: {}, plano: {}, planoSem: null, planoResp: "", openId: null, db: null, user: null, editing: false, creating: false
+  interno: {}, revs: {}, resumos: {}, reunioes: {}, atas: {}, cronogramas: {}, plano: {}, planoSem: null, planoResp: "", openId: null, db: null, user: null, editing: false, creating: false
 };
 
 /* ---------- helpers ---------- */
@@ -1612,7 +1613,7 @@ function plLinha(i){
 function viewPlano(){
   var ids=plIds();
   var h='<section class="view pl"><h2>Plano semanal</h2><p class="lede">O que o cronograma de projetos prevê para cada semana. Só consulta: nada aqui altera a Construflow.</p>';
-  if(!ids.length)return h+'<div class="empty">O plano semanal ainda não foi gerado. Ele é criado a partir do cronograma na pasta do projeto.</div></section>';
+  if(!ids.length)return h+'<div class="empty">O plano semanal ainda não foi gerado. Ele é criado a partir do cronograma na pasta do projeto.</div>'+(Object.keys(S.cronogramas||{}).length?cronogramaHtml():'')+'</section>';
   var sel=plSel(),k=ids.indexOf(sel),p=S.plano[sel],st=plStatus(p),r=plFiltra(p),atual=plAtual();
   var semEtapas=!S.isAdmin&&!S.myDiscs.some(function(c){return RESP_DISC[c];});
   h+='<div class="pl-nav"><button type="button" class="btn ghost sm" id="plPrev" aria-label="Semana anterior"'+(k<=0?' disabled':'')+'>‹ Anterior</button>'+
@@ -1621,7 +1622,7 @@ function viewPlano(){
     (S.isAdmin?'<label class="pl-f">Responsável <select id="plResp"><option value="">Todos</option>'+PL_RESPS.map(function(x){return '<option'+(x===S.planoResp?' selected':'')+'>'+esc(x)+'</option>';}).join("")+'</select></label>':'')+'</div>';
   if(semEtapas)h+='<div class="notice">'+(S.myDiscs.length?'Sua disciplina não tem etapas próprias no cronograma. Aparecem só as etapas de todos os projetistas.':'Escolha suas disciplinas no topo para ver as etapas da sua empresa. Por enquanto aparecem só as etapas de todos os projetistas.')+'</div>';
   h+='<div class="pl-card"><div class="pl-h" aria-live="polite"><strong>'+esc(p.semana)+'</strong> <span class="tag pl-st '+(st==="atual"?"at":st==="futura"?"fu":"co")+'">'+(st==="atual"?"Semana atual":st==="futura"?"Futura":"Concluída")+'</span></div>'+
-    (S.isAdmin&&!S.planoResp&&p.foco?'<p class="pl-foco">'+esc(p.foco)+'</p>':'')+'</div>';
+    (S.isAdmin&&!S.planoResp&&p.foco?'<p class="pl-foco">'+esc(p.foco)+'</p>':'')+'</div>'+cronogramaHtml();
   if(r.alertas.length)h+='<ul class="pl-al">'+r.alertas.map(function(a){var crit=/^(Sem avanço|Atrasada)/.test(a);return '<li class="'+(crit?'crit':'warn')+'"><span aria-hidden="true">⚠</span> <span>'+esc(a)+'</span></li>';}).join("")+'</ul>';
   var corpo=plLista("Terminam",r.terminos)+plLista("Iniciam",r.inicios)+plLista("Em andamento",r.andamento);
   h+=corpo||'<div class="empty">'+(S.planoResp?'Nenhuma etapa de '+esc(S.planoResp)+' nesta semana. <button type="button" class="btn ghost sm" id="plLimpa">Limpar filtro</button>':(S.isAdmin?'Sem atividades previstas no cronograma.':'Sem etapas suas nesta semana.'))+'</div>';
@@ -2404,12 +2405,29 @@ function atasHtml(){
   if(ks.length>6)h+='<details class="rmais" data-reun="ata:mais"'+(REU_ABERTAS["ata:mais"]?' open':'')+'><summary>Atas anteriores ('+(ks.length-6)+')</summary>'+ks.slice(6).map(ataItem).join("")+'</details>';
   return h;
 }
-document.addEventListener("click",function(e){var bt=e.target&&e.target.closest?e.target.closest("button.ata-dl[data-ata]"):null;if(!bt||bt.disabled)return;
-  var msg=bt.parentNode.querySelector(".ata-msg"),rot=bt.textContent;bt.disabled=true;bt.textContent="Gerando link…";if(msg)msg.textContent="";
-  Promise.resolve().then(function(){return window.claude.baixarAta(bt.getAttribute("data-ata"));}).then(function(r){
-    var l=document.createElement("a");l.href=r.url;l.download=r.arquivo||"ata.pdf";l.rel="noopener";l.style.display="none";document.body.appendChild(l);l.click();l.remove();
-  }).catch(function(){if(msg)msg.textContent="Não foi possível baixar a ata. Tente de novo.";}).then(function(){bt.disabled=false;bt.textContent=rot;});
+document.addEventListener("click",function(e){var bt=e.target&&e.target.closest?e.target.closest("button.ata-dl[data-ata],button.ata-dl[data-cron]"):null;if(!bt||bt.disabled)return;
+  var cron=bt.hasAttribute("data-cron"),msg=bt.parentNode.querySelector(".ata-msg"),rot=bt.textContent;bt.disabled=true;bt.textContent="Gerando link…";if(msg)msg.textContent="";
+  Promise.resolve().then(function(){return cron?window.claude.baixarCronograma(bt.getAttribute("data-cron")):window.claude.baixarAta(bt.getAttribute("data-ata"));}).then(function(r){
+    var l=document.createElement("a");l.href=r.url;l.download=r.arquivo||(cron?"cronograma.pdf":"ata.pdf");l.rel="noopener";l.style.display="none";document.body.appendChild(l);l.click();l.remove();
+  }).catch(function(){if(msg)msg.textContent=cron?"Não foi possível baixar o cronograma. Tente de novo.":"Não foi possível baixar a ata. Tente de novo.";}).then(function(){bt.disabled=false;bt.textContent=rot;});
 });
+/* Cronograma (PDF) no Plano semanal: mesmas classes das atas. Doc empreendimentos/<slug>/cronogramas/<id> (só metadados); window.claude.baixarCronograma(id) → {url}. */
+function cronNum(k){var c=S.cronogramas[k]||{},m=/(\d+)/.exec(String(c.revisao||k));return m?parseInt(m[1],10):-1;}
+function cronOrdenados(){var ks=Object.keys(S.cronogramas||{}).sort(function(x,y){var d=cronNum(y)-cronNum(x);if(d)return d;var A=String((S.cronogramas[x]||{}).importadoEm||""),B=String((S.cronogramas[y]||{}).importadoEm||"");return A===B?0:A<B?1:-1;});
+  var v=ks.filter(function(k){return (S.cronogramas[k]||{}).vigente===true;})[0];if(v)ks=[v].concat(ks.filter(function(k){return k!==v;}));return ks;}
+function cronItem(k){var c=S.cronogramas[k]||{},rv=esc(c.revisao||"—"),tam=ataTam(c.bytes),site=!!(window.claude&&typeof window.claude.baixarCronograma==="function"),acao;
+  if(!c.storage)acao='<span class="ata-nd">Arquivo indisponível</span>';
+  else if(site)acao='<button type="button" class="btn ghost ata-dl" data-cron="'+esc(k)+'" aria-label="Baixar cronograma revisão '+rv+' (PDF)">Baixar cronograma (PDF)</button>';
+  else acao='<a class="btn ghost ata-dl" href="'+esc(SITE_LOGIN_URL+"?emp="+encodeURIComponent(EMP))+'" target="_blank" rel="noopener" aria-label="Baixar cronograma revisão '+rv+' no site (abre em nova aba)">Baixar no site</a>';
+  return '<div class="ata-row"><div class="ata-info"><strong>Cronograma '+rv+'</strong>'+(c.dataStatus?' · status '+fmtD(c.dataStatus):'')+(tam&&c.storage?' <span class="n">'+tam+'</span>':'')+'</div><div class="ata-ac">'+acao+'<span class="ata-msg msg" role="status"></span></div></div>';
+}
+function cronogramaHtml(){
+  var ks=cronOrdenados();
+  if(!ks.length)return '<p class="ata-nd pl-crond">Cronograma ainda não disponível para download.</p>';
+  var h='<section class="pl-cron" aria-label="Cronograma para download">'+cronItem(ks[0]);
+  if(ks.length>1)h+='<details class="rmais" data-reun="cron:mais"'+(REU_ABERTAS["cron:mais"]?' open':'')+'><summary>Revisões anteriores ('+(ks.length-1)+')</summary>'+ks.slice(1).map(cronItem).join("")+'</details>';
+  return h+'</section>';
+}
 function reunioesConstruflowHtml(){
   var ks=Object.keys(S.reunioes||{}).sort().reverse();
   if(!ks.length)return '<div class="empty">Nenhuma reunião registrada ainda. Os resumos aparecem aqui a partir dos comentários de reunião no Construflow.</div>';
@@ -3397,6 +3415,7 @@ function boot(){
     db.doc("empreendimentos/"+EMP).onSnapshot(function(s){S.cfg=s.exists?s.data():null;if(S.cfg&&S.cfg.disciplinas&&S.cfg.disciplinas.length){setDisc(S.cfg.disciplinas);}if(S.loaded)agendarRender();else renderHeader();},function(){});
     db.collection("empreendimentos/"+EMP+"/reunioes").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.reunioes=m;if(S.loaded)agendarRender();},function(){});
     db.collection("empreendimentos/"+EMP+"/atas").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.atas=m;if(S.loaded&&S.view==="reuniao")agendarRender();},function(){});
+    db.collection("empreendimentos/"+EMP+"/cronogramas").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.cronogramas=m;if(S.loaded&&S.view==="plano")agendarRender();},function(){});
     db.collection("empreendimentos/"+EMP+"/plano_semanal").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.plano=m;if(S.loaded&&S.view==="plano")agendarRender();},function(){});
     db.collection("empreendimentos/"+EMP+"/revisoes").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.revs=m;if(S.loaded)agendarRender(true);},function(){});
     db.collection("empreendimentos/"+EMP+"/resumos").onSnapshot(function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=d.data();});S.resumos=m;if(S.loaded)agendarRender();},function(){});
